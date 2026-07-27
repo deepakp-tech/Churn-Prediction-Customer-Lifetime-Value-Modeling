@@ -1,0 +1,29 @@
+# Data & artifacts
+data/*
+!data/README.md
+*.csv
+*.xlsx
+*.parquet
+*.pkl
+*.joblib
+models/
+
+# Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Environment/secrets
+.env
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/

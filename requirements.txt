@@ -1,0 +1,10 @@
+lifetimes
+matplotlib
+numpy==2.3.0
+opendatasets
+pandas==2.3.0
+scipy==1.16.1
+seaborn
+shap
+scikit-learn
+xgboost
