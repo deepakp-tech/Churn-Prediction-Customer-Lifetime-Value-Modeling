@@ -3,8 +3,8 @@ data/*
 !data/README.md
 *.csv
 *.xlsx
-*.parquet
-*.pkl
+data/processed/cleaned_online_retail.parquet
+onlineretail/    
 *.joblib
 models/
 
