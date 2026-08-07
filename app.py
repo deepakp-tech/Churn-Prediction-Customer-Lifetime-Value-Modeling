@@ -1,17 +1,30 @@
 # app.py
 from pathlib import Path
-
-import joblib
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-import shap
-import matplotlib.pyplot as plt
 import streamlit as st
+
+
+# Safe imports with visible error logging
+try:
+    import joblib
+    import pandas as pd
+    import plotly.express as px
+    import plotly.graph_objects as go
+    import matplotlib
+    matplotlib.use('Agg') # Prevents GUI crashes on Linux servers
+    import matplotlib.pyplot as plt
+    import shap
+except Exception as e:
+    st.error(f"Error loading dependencies: {e}")
+    st.stop()
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / 'data' / 'processed'
 MODEL_DIR = BASE_DIR / 'models'
+
+if not DATA_DIR.exists():
+    st.error(f"Data directory missing on server: {DATA_DIR}")
+if not MODEL_DIR.exists():
+    st.error(f"Model directory missing on server: {MODEL_DIR}")
 
 st.set_page_config(page_title="Customer Analytics Dashboard", page_icon="📊", layout="wide")
 
@@ -46,7 +59,7 @@ def segment_badge(segment: str) -> str:
 
 
 # ==========================================
-# DATA & MODEL LOADING (cached, unchanged logic)
+# DATA & MODEL LOADING (cached)
 # ==========================================
 @st.cache_data
 def load_data():
@@ -55,14 +68,24 @@ def load_data():
     ltv = pd.read_parquet(DATA_DIR / 'ltv_matrix.parquet')
     retention = pd.read_parquet(DATA_DIR / 'retention_matrix.parquet')
 
-    for d in (rfm, churn, ltv):
+    # Defensive loop: Catch if CustomerID is hiding in the index or is lowercase
+    for name, d in [('RFM', rfm), ('Churn', churn), ('LTV', ltv)]:
+        if 'CustomerID' not in d.columns:
+            if d.index.name == 'CustomerID' or 'CustomerID' in d.index.names:
+                d.reset_index(inplace=True)
+            elif 'customer_id' in d.columns:
+                d.rename(columns={'customer_id': 'CustomerID'}, inplace=True)
+            else:
+                st.error(f"🚨 Missing 'CustomerID' in {name} dataset. Found columns: {d.columns.tolist()}")
+                st.stop()
+        
+        # Now it is safe to convert
         d['CustomerID'] = d['CustomerID'].astype(str)
 
     ltv_cols = [c for c in ['CustomerID', 'LTV_3m', 'LTV_6m', 'LTV_12m'] if c in ltv.columns]
     master = rfm.merge(churn, on='CustomerID', how='left') \
                 .merge(ltv[ltv_cols], on='CustomerID', how='left')
     return master, retention
-
 
 @st.cache_resource
 def load_model():
